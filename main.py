@@ -111,7 +111,8 @@ import asyncio
 async def main():
     techzdl = TechZDL()
     downloader = techzdl.get_dowloader(
-        "http://tsowwko.37.44.244.56.sslip.io/file?path=/HTF24U", {"auth": "fsajk"}
+        "https://vadapav.mov/f/42e13842-a9aa-4d6c-ba06-8f8829726c75/",
+        chunk_size=1024 * 1024,
     )
     await downloader.start()
 

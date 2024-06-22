@@ -170,7 +170,7 @@ class FileDownloader:
     async def load_chunk(self, temp_file_path, start, end, semaphore) -> None:
         await semaphore.acquire()
         try:
-            for i in range(3):
+            for i in range(5):
                 try:
                     headers = {"Range": f"bytes={start}-{end}"}
                     if self.custom_headers:
@@ -198,7 +198,7 @@ class FileDownloader:
                         self.log(f"Failed to download chunk {start}-{end}")
                         raise e
 
-                    self.log(f"Retrying chunk {start}-{end} ({i + 1}/3)")
+                    self.log(f"Retrying chunk {start}-{end} ({i + 1}/5)")
 
         except asyncio.CancelledError:
             pass
@@ -242,7 +242,9 @@ class FileDownloader:
         Perform a single-threaded download of the file.
         """
         if self.curl_cffi_required:
-            async with self.session.stream(url=self.url, method="GET") as response:
+            async with self.session.stream(
+                url=self.url, method="GET", headers=self.custom_headers
+            ) as response:
                 async with aiofiles.open(self.output_path, "wb") as output_file:
                     async for chunk in response.aiter_content():
                         await output_file.write(chunk)
@@ -322,7 +324,9 @@ class FileDownloader:
             self.session = AsyncSession()
             self.curl_cffi_required = True
 
-            async with self.session.stream(url=self.url, method="GET") as response:
+            async with self.session.stream(
+                url=self.url, method="GET", headers=self.custom_headers
+            ) as response:
                 self.total_size = int(response.headers.get("Content-Length", 0))
                 if self.total_size == 0:
                     raise Exception("Content-Length header is missing or invalid")
