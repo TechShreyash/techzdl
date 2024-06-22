@@ -8,6 +8,7 @@ from extra import change_file_path_if_exist, get_random_string
 from filename_parser import get_filename
 from logger import Logger
 from typing import Callable, Any, Union, Awaitable
+from curl_cffi.requests import AsyncSession
 
 
 class AdjustableSemaphore:
@@ -36,6 +37,7 @@ class FileDownloader:
     def __init__(
         self,
         url: str,
+        custom_headers: dict = None,
         output_dir: Union[str, Path] = Path("downloads"),
         filename: str = None,
         workers: int = None,
@@ -56,6 +58,7 @@ class FileDownloader:
 
         Args:
             url (str): URL of the file to download.
+            custom_headers (dict, optional): Custom headers to send with the request. Defaults to None.
             output_dir (Union[str, Path], optional): Directory where the file will be saved. Defaults to "downloads".
             filename (str, optional): Name to save the file as. By default this will determined automatically, from headers or url, if failed then a default id will be used as filename.
             workers (int, optional): Number of fixed concurrent download workers. By default this will be dynamically changed based on the download speed.
@@ -67,11 +70,12 @@ class FileDownloader:
                 Callback function to update download progress. Can be sync or async. Defaults to None.
             progress_args (tuple, optional): Additional arguments for progress_callback. Defaults to ().
             progress_interval (int, optional): Time interval for progress updates in seconds. Defaults to 1.
-            chunk_size (int, optional): Size of each download chunk in bytes. Defaults to 5 MB.
+            chunk_size (int, optional): Size of each download chunk in bytes. Defaults to 5 MB. Dont make it too small or too large (more than 10 mb not recommended).
             single_threaded (bool, optional): True if you want to use single-threaded download. Defaults to False, will be determined automatically based on the download server.
         """
         self.id = get_random_string(6)
         self.url = url
+        self.custom_headers = custom_headers
         self.output_dir = (
             Path(output_dir) if isinstance(output_dir, str) else output_dir
         )
@@ -89,6 +93,7 @@ class FileDownloader:
         self.is_callback_async = inspect.iscoroutinefunction(progress_callback)
         self.dynamic_workers = initial_dynamic_workers
         self.dynamic_workers_update_interval = dynamic_workers_update_interval
+        self.curl_cffi_required = False
 
     def log(self, message: str) -> None:
         """
@@ -99,6 +104,19 @@ class FileDownloader:
         """
         if self.debug:
             self.logger.debug(message)
+
+    async def task_runner(self, tasks):
+        new_tasks = [asyncio.create_task(task) for task in tasks]
+        tasks = new_tasks
+        done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION)
+
+        for task in done:
+            if task.exception():
+                for pending_task in pending:
+                    pending_task.cancel()
+                # Wait for the cancellation to complete
+                await asyncio.gather(*pending, return_exceptions=True)
+                raise task.exception()
 
     async def show_progress(self, description: str) -> None:
         """
@@ -124,6 +142,14 @@ class FileDownloader:
                         *self.progress_args,
                     )
                 await asyncio.sleep(self.progress_interval)
+            if self.is_callback_async:
+                await self.progress_callback(
+                    description, self.total_size, self.total_size, *self.progress_args
+                )
+            else:
+                self.progress_callback(
+                    description, self.total_size, self.total_size, *self.progress_args
+                )
         else:
             if self.progress:
                 with tqdm(
@@ -144,27 +170,42 @@ class FileDownloader:
     async def load_chunk(self, temp_file_path, start, end, semaphore) -> None:
         await semaphore.acquire()
         try:
-            headers = {"Range": f"bytes={start}-{end}"}
-            async with self.session.get(self.url, headers=headers) as response:
-                chunk = await response.read()
+            for i in range(3):
+                try:
+                    headers = {"Range": f"bytes={start}-{end}"}
+                    if self.custom_headers:
+                        headers.update(self.custom_headers)
 
-            async with aiofiles.open(temp_file_path, "r+b") as file:
-                await file.seek(start)
-                await file.write(chunk)
+                    if self.curl_cffi_required:
+                        response = await self.session.get(url=self.url, headers=headers)
+                        chunk = response.content
+                    else:
+                        async with self.session.get(
+                            self.url, headers=headers
+                        ) as response:
+                            chunk = await response.read()
 
-            self.size_done += len(chunk)
+                    async with aiofiles.open(temp_file_path, "r+b") as file:
+                        await file.seek(start)
+                        await file.write(chunk)
+
+                    self.size_done += len(chunk)
+                    break
+                except Exception as e:
+                    self.log(f"Error downloading chunk {start}-{end}: {e}")
+
+                    if i == 2:
+                        self.log(f"Failed to download chunk {start}-{end}")
+                        raise e
+
+                    self.log(f"Retrying chunk {start}-{end} ({i + 1}/3)")
+
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            raise e
         finally:
             await semaphore.release()
-
-    async def single_threaded_download(self) -> None:
-        """
-        Perform a single-threaded download of the file.
-        """
-        async with self.session.get(self.url) as response:
-            async with aiofiles.open(self.output_path, "wb") as output_file:
-                while chunk := await response.content.read(self.chunk_size):
-                    await output_file.write(chunk)
-                    self.size_done += len(chunk)
 
     async def temp_file_creator(self, temp_file_path, total_chunks) -> tuple:
         async with aiofiles.open(temp_file_path, "wb") as file:
@@ -196,6 +237,25 @@ class FileDownloader:
             prev_downloaded = self.size_done
             prev_speed = speed
 
+    async def single_threaded_download(self) -> None:
+        """
+        Perform a single-threaded download of the file.
+        """
+        if self.curl_cffi_required:
+            async with self.session.stream(url=self.url, method="GET") as response:
+                async with aiofiles.open(self.output_path, "wb") as output_file:
+                    async for chunk in response.aiter_content():
+                        await output_file.write(chunk)
+                        self.size_done += len(chunk)
+        else:
+            async with self.session.get(
+                self.url, headers=self.custom_headers
+            ) as response:
+                async with aiofiles.open(self.output_path, "wb") as output_file:
+                    while chunk := await response.content.read(self.chunk_size):
+                        await output_file.write(chunk)
+                        self.size_done += len(chunk)
+
     async def multi_threaded_download(self):
         total_chunks = (self.total_size + self.chunk_size - 1) // self.chunk_size
 
@@ -203,9 +263,11 @@ class FileDownloader:
         self.log(
             f"Creating Temp File {temp_file_path.name} of size {self.total_size} bytes"
         )
-        await asyncio.gather(
-            self.temp_file_creator(temp_file_path, total_chunks),
-            self.show_progress("Creating Temp File"),
+        await self.task_runner(
+            [
+                self.temp_file_creator(temp_file_path, total_chunks),
+                self.show_progress("Creating Temp File"),
+            ]
         )
         self.size_done = 0
 
@@ -228,7 +290,7 @@ class FileDownloader:
 
         tasks.append(self.show_progress("Downloading"))
 
-        await asyncio.gather(*tasks)
+        await self.task_runner(tasks)
 
         temp_file_path.rename(self.output_path)
 
@@ -239,45 +301,61 @@ class FileDownloader:
         Returns:
             Path: Path to the downloaded file.
         """
-        async with aiohttp.ClientSession() as session:
-            self.session = session
-            async with self.session.get(self.url) as response:
+        self.size_done = 0
+        self.log("Getting file info")
+
+        try:
+            self.session = aiohttp.ClientSession()
+            async with self.session.get(
+                url=self.url, headers=self.custom_headers
+            ) as response:
                 self.total_size = int(response.headers.get("Content-Length", 0))
-                self.size_done = 0
                 if self.total_size == 0:
                     raise Exception("Content-Length header is missing or invalid")
 
                 if not self.filename:
                     self.filename = get_filename(response.headers, self.url, self.id)
+                accept_ranges = response.headers.get("Accept-Ranges")
+        except:
+            self.log("Failed to get file info using aiohttp. Trying curl_cffi")
+            await self.session.close()
+            self.session = AsyncSession()
+            self.curl_cffi_required = True
 
-                self.output_path = change_file_path_if_exist(
-                    self.output_dir / self.filename
-                )
-                self.filename = self.output_path.name
+            async with self.session.stream(url=self.url, method="GET") as response:
+                self.total_size = int(response.headers.get("Content-Length", 0))
+                if self.total_size == 0:
+                    raise Exception("Content-Length header is missing or invalid")
 
+                if not self.filename:
+                    self.filename = get_filename(response.headers, self.url, self.id)
                 accept_ranges = response.headers.get("Accept-Ranges")
 
-            if accept_ranges != "bytes" or self.single_threaded:
-                if accept_ranges != "bytes":
-                    self.log(
-                        "Server does not support range requests. Multi-Threaded Download not supported."
-                    )
-                self.log("Starting Single-Threaded Download")
-                self.log(f"Downloading {self.filename}")
+        self.output_path = change_file_path_if_exist(self.output_dir / self.filename)
+        self.filename = self.output_path.name
 
-                if self.progress:
-                    await asyncio.gather(
+        if accept_ranges != "bytes" or self.single_threaded:
+            if accept_ranges != "bytes":
+                self.log(
+                    "Server does not support range requests. Multi-Threaded Download not supported."
+                )
+            self.log("Starting Single-Threaded Download")
+            self.log(f"Downloading {self.filename}")
+
+            if self.progress:
+                await self.task_runner(
+                    [
                         self.single_threaded_download(),
                         self.show_progress("Downloading"),
-                    )
-                else:
-                    await self.single_threaded_download()
-            else:
-                self.log(
-                    "Server supports range requests. Starting Multi-Threaded Download"
+                    ]
                 )
+            else:
+                await self.single_threaded_download()
+        else:
+            self.log("Server supports range requests. Starting Multi-Threaded Download")
 
-                await self.multi_threaded_download()
+            await self.multi_threaded_download()
 
-            self.log(f"Downloaded {self.filename}")
-            return self.output_path
+        self.log(f"Downloaded {self.filename}")
+        await self.session.close()
+        return self.output_path

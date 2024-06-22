@@ -15,6 +15,7 @@ class TechZDL:
     def get_dowloader(
         self,
         url: str,
+        headers: dict = None,
         output_dir: Union[str, Path] = Path("downloads"),
         filename: str = None,
         workers: int = None,
@@ -88,6 +89,7 @@ class TechZDL:
 
         return FileDownloader(
             url,
+            headers,
             output_dir,
             filename,
             workers,
@@ -109,7 +111,7 @@ import asyncio
 async def main():
     techzdl = TechZDL()
     downloader = techzdl.get_dowloader(
-        "http://tsowwko.37.44.244.56.sslip.io/file?path=/HTF24U", debug=True,output_dir='myfiles',filename='testfile.zip'
+        "http://tsowwko.37.44.244.56.sslip.io/file?path=/HTF24U", {"auth": "fsajk"}
     )
     await downloader.start()
 
