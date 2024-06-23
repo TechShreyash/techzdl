@@ -72,6 +72,7 @@ class FileDownloader:
             progress_interval (int, optional): Time interval for progress updates in seconds. Defaults to 1.
             chunk_size (int, optional): Size of each download chunk in bytes. Defaults to 5 MB. Dont make it too small or too large (more than 10 mb not recommended).
             single_threaded (bool, optional): True if you want to use single-threaded download. Defaults to False, will be determined automatically based on the download server.
+            max_retries (int, optional): Number of retries for each chunk/file download. Defaults to 3.
         """
         self.id = get_random_string(6)
         self.url = url
@@ -94,6 +95,8 @@ class FileDownloader:
         self.dynamic_workers = initial_dynamic_workers
         self.dynamic_workers_update_interval = dynamic_workers_update_interval
         self.curl_cffi_required = False
+        self.max_retries = 3
+        self.session = None
 
     def log(self, message: str) -> None:
         """
@@ -170,20 +173,37 @@ class FileDownloader:
     async def load_chunk(self, temp_file_path, start, end, semaphore) -> None:
         await semaphore.acquire()
         try:
-            for i in range(5):
+            for i in range(self.max_retries):
                 try:
                     headers = {"Range": f"bytes={start}-{end}"}
                     if self.custom_headers:
                         headers.update(self.custom_headers)
 
                     if self.curl_cffi_required:
-                        response = await self.session.get(url=self.url, headers=headers)
-                        chunk = response.content
+                        try:
+                            response = await self.session.get(
+                                url=self.url, headers=headers
+                            )
+                            chunk = response.content
+                            if len(chunk)  != end - start + 1:
+                                print(len(chunk), end - start + 1)
+                                raise Exception("Chunk size mismatch")
+                        finally:
+                            try:
+                                response.close()
+                            except:
+                                pass
                     else:
-                        async with self.session.get(
-                            self.url, headers=headers
-                        ) as response:
-                            chunk = await response.read()
+                        try:
+                            response = await self.session.get(
+                                url=self.url, headers=headers
+                            )
+                            chunk = await response.content.read()
+                        finally:
+                            try:
+                                response.close()
+                            except:
+                                pass
 
                     async with aiofiles.open(temp_file_path, "r+b") as file:
                         await file.seek(start)
@@ -193,12 +213,11 @@ class FileDownloader:
                     break
                 except Exception as e:
                     self.log(f"Error downloading chunk {start}-{end}: {e}")
-
-                    if i == 2:
-                        self.log(f"Failed to download chunk {start}-{end}")
+                    if i == self.max_retries - 1:
                         raise e
-
-                    self.log(f"Retrying chunk {start}-{end} ({i + 1}/5)")
+                    self.log(
+                        f"Retrying chunk {start}-{end} ({i + 1}/{self.max_retries})"
+                    )
 
         except asyncio.CancelledError:
             pass
@@ -241,22 +260,45 @@ class FileDownloader:
         """
         Perform a single-threaded download of the file.
         """
-        if self.curl_cffi_required:
-            async with self.session.stream(
-                url=self.url, method="GET", headers=self.custom_headers
-            ) as response:
-                async with aiofiles.open(self.output_path, "wb") as output_file:
-                    async for chunk in response.aiter_content():
-                        await output_file.write(chunk)
-                        self.size_done += len(chunk)
-        else:
-            async with self.session.get(
-                self.url, headers=self.custom_headers
-            ) as response:
-                async with aiofiles.open(self.output_path, "wb") as output_file:
-                    while chunk := await response.content.read(self.chunk_size):
-                        await output_file.write(chunk)
-                        self.size_done += len(chunk)
+
+        for i in range(self.max_retries):
+            try:
+                if self.curl_cffi_required:
+                    try:
+                        response = await self.session.get(
+                            url=self.url, headers=self.custom_headers, stream=True
+                        )
+                        async with aiofiles.open(self.output_path, "wb") as output_file:
+                            async for chunk in response.aiter_content():
+                                await output_file.write(chunk)
+                                self.size_done += len(chunk)
+                    except Exception as e:
+                        raise e
+                    finally:
+                        try:
+                            response.close()
+                        except:
+                            pass
+                else:
+                    try:
+                        response = await self.session.get(
+                            self.url, headers=self.custom_headers
+                        )
+                        async with aiofiles.open(self.output_path, "wb") as output_file:
+                            while chunk := await response.content.read(self.chunk_size):
+                                await output_file.write(chunk)
+                                self.size_done += len(chunk)
+                    finally:
+                        try:
+                            response.close()
+                        except:
+                            pass
+                break
+            except Exception as e:
+                self.log(f"Error downloading file: {e}")
+                if i == self.max_retries - 1:
+                    raise e
+                self.log(f"Retrying download ({i + 1}/{self.max_retries})")
 
     async def multi_threaded_download(self):
         total_chunks = (self.total_size + self.chunk_size - 1) // self.chunk_size
@@ -306,11 +348,25 @@ class FileDownloader:
         self.size_done = 0
         self.log("Getting file info")
 
-        try:
-            self.session = aiohttp.ClientSession()
-            async with self.session.get(
-                url=self.url, headers=self.custom_headers
-            ) as response:
+        for i in range(self.max_retries):
+            try:
+                if self.session:
+                    try:
+                        await self.session.close()
+                    except:
+                        pass
+                self.session = aiohttp.ClientSession()
+
+                try:
+                    response = await self.session.get(
+                        url=self.url, headers=self.custom_headers
+                    )
+                finally:
+                    try:
+                        response.close()
+                    except:
+                        pass
+
                 self.total_size = int(response.headers.get("Content-Length", 0))
                 if self.total_size == 0:
                     raise Exception("Content-Length header is missing or invalid")
@@ -318,22 +374,49 @@ class FileDownloader:
                 if not self.filename:
                     self.filename = get_filename(response.headers, self.url, self.id)
                 accept_ranges = response.headers.get("Accept-Ranges")
-        except:
-            self.log("Failed to get file info using aiohttp. Trying curl_cffi")
-            await self.session.close()
-            self.session = AsyncSession()
-            self.curl_cffi_required = True
+                break
+            except Exception as e:
+                try:
+                    self.log(
+                        f"Failed to get file info using aiohttp: {e}"
+                    )
+                    try:
+                        await self.session.close()
+                    except:
+                        pass
 
-            async with self.session.stream(
-                url=self.url, method="GET", headers=self.custom_headers
-            ) as response:
-                self.total_size = int(response.headers.get("Content-Length", 0))
-                if self.total_size == 0:
-                    raise Exception("Content-Length header is missing or invalid")
+                    self.session = AsyncSession()
+                    self.curl_cffi_required = True
 
-                if not self.filename:
-                    self.filename = get_filename(response.headers, self.url, self.id)
-                accept_ranges = response.headers.get("Accept-Ranges")
+                    try:
+                        response = await self.session.get(
+                            url=self.url, headers=self.custom_headers, stream=True
+                        )
+                    finally:
+                        try:
+                            response.close()
+                        except:
+                            pass
+
+                    self.total_size = int(response.headers.get("Content-Length", 0))
+                    if self.total_size == 0:
+                        raise Exception("Content-Length header is missing or invalid")
+
+                    if not self.filename:
+                        self.filename = get_filename(
+                            response.headers, self.url, self.id
+                        )
+                    accept_ranges = response.headers.get("Accept-Ranges")
+                    break
+                except Exception as e:
+                    self.log(f"Error getting file info: {e}")
+                    if i == self.max_retries - 1:
+                        try:
+                            await self.session.close()
+                        except:
+                            pass
+                        raise e
+                    self.log(f"Retrying getting file info ({i + 1}/{self.max_retries})")
 
         self.output_path = change_file_path_if_exist(self.output_dir / self.filename)
         self.filename = self.output_path.name
@@ -361,5 +444,8 @@ class FileDownloader:
             await self.multi_threaded_download()
 
         self.log(f"Downloaded {self.filename}")
-        await self.session.close()
+        try:
+            await self.session.close()
+        except:
+            pass
         return self.output_path
