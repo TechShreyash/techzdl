@@ -4,13 +4,13 @@ import asyncio
 import inspect
 from tqdm import tqdm
 from pathlib import Path
-from extra import (
+from techzdl.extra import (
     change_file_path_if_exist,
     get_random_string,
     AdjustableSemaphore,
     get_filename,
 )
-from logger import Logger
+from techzdl.logger import Logger
 from typing import Callable, Any, Union, Awaitable, Optional
 from curl_cffi.requests import AsyncSession
 

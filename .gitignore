@@ -3,3 +3,5 @@
 /downloads
 *.pyc
 t.py
+/dist
+/techzdl.egg-info

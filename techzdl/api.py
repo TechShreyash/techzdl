@@ -1,6 +1,6 @@
-from downloader import FileDownloader
+from techzdl.downloader import FileDownloader
 from pathlib import Path
-from logger import Logger
+from techzdl.logger import Logger
 from typing import Callable, Any, Union, Awaitable, Optional
 
 
