@@ -2,6 +2,11 @@ import string
 import random
 from pathlib import Path
 import asyncio
+import re
+import urllib.parse
+import mimetypes
+from urllib.parse import unquote_plus
+from typing import Optional, Dict
 
 
 def get_random_string(length: int) -> str:
@@ -14,11 +19,20 @@ def get_random_string(length: int) -> str:
     Returns:
         str: A random string of specified length.
     """
-
-    return "".join(random.choices(string.ascii_uppercase, k=length))
+    random_string = "".join(random.choices(string.ascii_uppercase, k=length))
+    return random_string
 
 
 def change_file_path_if_exist(original_path: Path) -> Path:
+    """
+    Change the file path if a file with the same name already exists.
+
+    Args:
+        original_path (Path): The original file path.
+
+    Returns:
+        Path: A new file path if the original exists, otherwise the original path.
+    """
     num = 0
     path = original_path
     while path.exists():
@@ -29,34 +43,44 @@ def change_file_path_if_exist(original_path: Path) -> Path:
     return path
 
 
-
 class AdjustableSemaphore:
-    def __init__(self, initial_value):
+    def __init__(self, initial_value: int):
+        """
+        Initialize an adjustable semaphore.
+
+        Args:
+            initial_value (int): The initial value of the semaphore.
+        """
         self._value = initial_value
         self._condition = asyncio.Condition()
 
     async def acquire(self):
+        """
+        Acquire a semaphore, waiting if necessary until it becomes available.
+        """
         async with self._condition:
             while self._value <= 0:
                 await self._condition.wait()
             self._value -= 1
 
     async def release(self):
+        """
+        Release a semaphore, incrementing the internal counter and notifying waiters.
+        """
         async with self._condition:
             self._value += 1
             self._condition.notify()
 
-    async def set_limit(self, new_limit):
+    async def set_limit(self, new_limit: int):
+        """
+        Set a new limit for the semaphore.
+
+        Args:
+            new_limit (int): The new limit for the semaphore.
+        """
         async with self._condition:
             self._value += new_limit - self._value
             self._condition.notify_all()
-
-
-import re
-import urllib.parse
-import mimetypes
-from urllib.parse import unquote_plus
-from typing import Optional, Dict
 
 
 def parse_content_disposition(content_disposition: str) -> Optional[str]:
@@ -70,7 +94,6 @@ def parse_content_disposition(content_disposition: str) -> Optional[str]:
         Optional[str]: The extracted filename, or None if not found.
     """
     parts = content_disposition.split(";")
-
     filename = None
     for part in parts:
         part = part.strip()
@@ -84,7 +107,6 @@ def parse_content_disposition(content_disposition: str) -> Optional[str]:
                     filename = urllib.parse.unquote(value, encoding=encoding)
                 except ValueError:
                     filename = None
-
     return filename
 
 

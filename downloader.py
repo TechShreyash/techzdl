@@ -13,7 +13,6 @@ from extra import (
 from logger import Logger
 from typing import Callable, Any, Union, Awaitable, Optional
 from curl_cffi.requests import AsyncSession
-import time
 
 
 class FileDownloader:
@@ -85,15 +84,20 @@ class FileDownloader:
         self.session = None
         self.timeout = timeout
 
-    def log(self, message: str) -> None:
+    def log(self, message: str, level: str = "info") -> None:
         """
-        Log a message if debug mode is enabled.
+        Log a message with the specified level.
 
         Args:
             message (str): Message to log.
+            level (str): Log level ('info', 'debug', 'warning', 'error'). Defaults to 'info'.
         """
-        if self.debug:
-            self.logger.debug(message)
+        if level == "info" and self.debug:
+            self.logger.info(message)
+        elif level == "warning":
+            self.logger.warning(message)
+        elif level == "error":
+            self.logger.error(message)
 
     async def task_runner(self, tasks: list[Awaitable]) -> None:
         """
@@ -111,6 +115,10 @@ class FileDownloader:
                 for pending_task in pending:
                     pending_task.cancel()
                 await asyncio.gather(*pending, return_exceptions=True)
+                self.log(
+                    f"Exception raised in task runner: {task.exception()}",
+                    level="error",
+                )
                 raise task.exception()
 
     async def show_progress(self, description: str) -> None:
@@ -196,16 +204,20 @@ class FileDownloader:
                     self.size_done += len(chunk)
                     break
                 except Exception as e:
-                    self.log(f"Error downloading chunk {start}-{end}: {e}")
+                    self.log(
+                        f"Error downloading chunk {start}-{end}: {e}", level="error"
+                    )
                     if i == self.max_retries - 1:
                         raise e
                     self.log(
-                        f"Retrying chunk {start}-{end} ({i + 1}/{self.max_retries})"
+                        f"Retrying chunk {start}-{end} ({i + 1}/{self.max_retries})",
+                        level="warning",
                     )
                     await asyncio.sleep(2**i)  # Exponential backoff
         except asyncio.CancelledError:
             pass
         except Exception as e:
+            self.log(f"Failed to download chunk {start}-{end}: {e}", level="error")
             raise e
         finally:
             await semaphore.release()
@@ -268,7 +280,6 @@ class FileDownloader:
                         async for chunk in response.aiter_content():
                             await output_file.write(chunk)
                             self.size_done += len(chunk)
-                    response.close()
                 else:
                     response = await self.session.get(
                         self.url, headers=self.custom_headers
@@ -277,13 +288,15 @@ class FileDownloader:
                         while chunk := await response.content.read(self.chunk_size):
                             await output_file.write(chunk)
                             self.size_done += len(chunk)
-                    response.close()
+                response.close()
                 break
             except Exception as e:
-                self.log(f"Error downloading file: {e}")
+                self.log(f"Error downloading file: {e}", level="error")
                 if i == self.max_retries - 1:
                     raise e
-                self.log(f"Retrying download ({i + 1}/{self.max_retries})")
+                self.log(
+                    f"Retrying download ({i + 1}/{self.max_retries})", level="warning"
+                )
                 await asyncio.sleep(2**i)  # Exponential backoff
 
     async def multi_threaded_download(self) -> None:
@@ -293,8 +306,9 @@ class FileDownloader:
         total_chunks = (self.total_size + self.chunk_size - 1) // self.chunk_size
         temp_file_path = self.output_dir / (self.output_path.stem + ".temp")
         self.log(
-            f"Creating Temp File {temp_file_path.name} of size {self.total_size} bytes"
+            f"Creating temp file {temp_file_path.name} of size {self.total_size} bytes"
         )
+
         await self.task_runner(
             [
                 self.temp_file_creator(temp_file_path, total_chunks),
@@ -312,7 +326,7 @@ class FileDownloader:
             task = self.load_chunk(temp_file_path, start, end, semaphore)
             tasks.append(task)
 
-        self.log(f"Downloading {self.filename}")
+        self.log(f"Starting download of {self.filename}")
 
         if self.workers:
             self.dynamic_workers = self.workers
@@ -333,7 +347,7 @@ class FileDownloader:
             Path: Path to the downloaded file.
         """
         self.size_done = 0
-        self.log("Getting file info")
+        self.log("Initializing download process")
 
         for i in range(self.max_retries):
             try:
@@ -343,6 +357,7 @@ class FileDownloader:
                     timeout=aiohttp.ClientTimeout(total=self.timeout)
                 )
 
+                self.log(f"Fetching file info from {self.url}")
                 response = await self.session.get(
                     url=self.url, headers=self.custom_headers
                 )
@@ -357,7 +372,9 @@ class FileDownloader:
                 break
             except Exception as e:
                 try:
-                    self.log(f"Failed to get file info using aiohttp: {e}")
+                    self.log(
+                        f"Failed to get file info using aiohttp: {e}", level="error"
+                    )
                     await self.session.close()
 
                     self.session = AsyncSession(timeout=self.timeout)
@@ -378,11 +395,14 @@ class FileDownloader:
                     accept_ranges = response.headers.get("Accept-Ranges")
                     break
                 except Exception as e:
-                    self.log(f"Error getting file info: {e}")
+                    self.log(f"Error getting file info: {e}", level="error")
                     if i == self.max_retries - 1:
                         await self.session.close()
                         raise e
-                    self.log(f"Retrying getting file info ({i + 1}/{self.max_retries})")
+                    self.log(
+                        f"Retrying getting file info ({i + 1}/{self.max_retries})",
+                        level="warning",
+                    )
                     await asyncio.sleep(2**i)  # Exponential backoff
 
         self.output_path = change_file_path_if_exist(self.output_dir / self.filename)
@@ -391,9 +411,10 @@ class FileDownloader:
         if accept_ranges != "bytes" or self.single_threaded:
             if accept_ranges != "bytes":
                 self.log(
-                    "Server does not support range requests. Multi-Threaded Download not supported."
+                    "Server does not support range requests. Multi-threaded download not supported.",
+                    level="warning",
                 )
-            self.log("Starting Single-Threaded Download")
+            self.log("Starting single-threaded download")
             self.log(f"Downloading {self.filename}")
 
             if self.progress:
@@ -406,9 +427,9 @@ class FileDownloader:
             else:
                 await self.single_threaded_download()
         else:
-            self.log("Server supports range requests. Starting Multi-Threaded Download")
+            self.log("Server supports range requests. Starting multi-threaded download")
             await self.multi_threaded_download()
 
-        self.log(f"Downloaded {self.filename}")
+        self.log(f"Download completed: {self.filename}")
         await self.session.close()
         return self.output_path
