@@ -4,33 +4,10 @@ import asyncio
 import inspect
 from tqdm import tqdm
 from pathlib import Path
-from extra import change_file_path_if_exist, get_random_string
-from filename_parser import get_filename
+from extra import change_file_path_if_exist, get_random_string, AdjustableSemaphore,get_filename
 from logger import Logger
 from typing import Callable, Any, Union, Awaitable
 from curl_cffi.requests import AsyncSession
-
-
-class AdjustableSemaphore:
-    def __init__(self, initial_value):
-        self._value = initial_value
-        self._condition = asyncio.Condition()
-
-    async def acquire(self):
-        async with self._condition:
-            while self._value <= 0:
-                await self._condition.wait()
-            self._value -= 1
-
-    async def release(self):
-        async with self._condition:
-            self._value += 1
-            self._condition.notify()
-
-    async def set_limit(self, new_limit):
-        async with self._condition:
-            self._value += new_limit - self._value
-            self._condition.notify_all()
 
 
 class FileDownloader:
@@ -52,6 +29,8 @@ class FileDownloader:
         progress_interval: int = 1,
         chunk_size: int = 5 * 1024 * 1024,
         single_threaded: bool = False,
+        max_retries: int = 3,
+        timeout: int = 60,
     ) -> None:
         """
         Initialize the FileDownloader object.
@@ -60,19 +39,20 @@ class FileDownloader:
             url (str): URL of the file to download.
             custom_headers (dict, optional): Custom headers to send with the request. Defaults to None.
             output_dir (Union[str, Path], optional): Directory where the file will be saved. Defaults to "downloads".
-            filename (str, optional): Name to save the file as. By default this will determined automatically, from headers or url, if failed then a default id will be used as filename.
+            filename (str, optional): Name to save the file as (including extension). By default this will determined automatically, from headers or url, if failed then a default id will be used as filename.
             workers (int, optional): Number of fixed concurrent download workers. By default this will be dynamically changed based on the download speed.
             initial_dynamic_workers (int, optional): Number of initial dynamic workers count to start with when dynamically determining workers. Defaults to 2.
-            dynamic_workers_update_interval (int,optional): Interval in seconds after which the dynamic worker count will get updated, Defaukt 5 seconds
-            debug (bool, optional): Enable/Disable debug mode. Defaults to True.
+            dynamic_workers_update_interval (int,optional): Interval in seconds after which the dynamic worker count will get updated, Default 5 seconds
+            debug (bool, optional): True to get debug logs. Defaults to True.
             progress (bool, optional): True if you want tqdm download progress. Defaults to True.
             progress_callback (Union[Callable[..., Any], Callable[..., Awaitable[Any]]], optional):
-                Callback function to update download progress. Can be sync or async. Defaults to None.
+                Callback function to update download progress. Can be sync or async. Defaults to None. Setting this will disable tqdm progress.
             progress_args (tuple, optional): Additional arguments for progress_callback. Defaults to ().
             progress_interval (int, optional): Time interval for progress updates in seconds. Defaults to 1.
             chunk_size (int, optional): Size of each download chunk in bytes. Defaults to 5 MB. Dont make it too small or too large (more than 10 mb not recommended).
-            single_threaded (bool, optional): True if you want to use single-threaded download. Defaults to False, will be determined automatically based on the download server.
+            single_threaded (bool, optional): True if you want to use single-threaded download. Defaults to False, will be determined automatically based on the download url server.
             max_retries (int, optional): Number of retries for each chunk/file download. Defaults to 3.
+            timeout (int, optional): Timeout for each request in seconds. Defaults to 60.
         """
         self.id = get_random_string(6)
         self.url = url
@@ -95,8 +75,9 @@ class FileDownloader:
         self.dynamic_workers = initial_dynamic_workers
         self.dynamic_workers_update_interval = dynamic_workers_update_interval
         self.curl_cffi_required = False
-        self.max_retries = 3
+        self.max_retries = max_retries
         self.session = None
+        self.timeout = timeout
 
     def log(self, message: str) -> None:
         """
@@ -185,7 +166,7 @@ class FileDownloader:
                                 url=self.url, headers=headers
                             )
                             chunk = response.content
-                            if len(chunk)  != end - start + 1:
+                            if len(chunk) != end - start + 1:
                                 print(len(chunk), end - start + 1)
                                 raise Exception("Chunk size mismatch")
                         finally:
@@ -355,7 +336,9 @@ class FileDownloader:
                         await self.session.close()
                     except:
                         pass
-                self.session = aiohttp.ClientSession()
+                self.session = aiohttp.ClientSession(
+                    timeout=aiohttp.ClientTimeout(total=self.timeout)
+                )
 
                 try:
                     response = await self.session.get(
@@ -377,15 +360,13 @@ class FileDownloader:
                 break
             except Exception as e:
                 try:
-                    self.log(
-                        f"Failed to get file info using aiohttp: {e}"
-                    )
+                    self.log(f"Failed to get file info using aiohttp: {e}")
                     try:
                         await self.session.close()
                     except:
                         pass
 
-                    self.session = AsyncSession()
+                    self.session = AsyncSession(timeout=self.timeout)
                     self.curl_cffi_required = True
 
                     try:
