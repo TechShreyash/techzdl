@@ -367,7 +367,9 @@ class FileDownloader:
                     raise Exception("Content-Length header is missing or invalid")
 
                 if not self.filename:
-                    self.filename = get_filename(response.headers, self.url, self.id)
+                    self.filename = get_filename(
+                        response.headers, response.url, self.id
+                    )
                 accept_ranges = response.headers.get("Accept-Ranges")
                 break
             except Exception as e:
@@ -390,7 +392,7 @@ class FileDownloader:
 
                     if not self.filename:
                         self.filename = get_filename(
-                            response.headers, self.url, self.id
+                            response.headers, response.url, self.id
                         )
                     accept_ranges = response.headers.get("Accept-Ranges")
                     break
@@ -404,7 +406,7 @@ class FileDownloader:
                         level="warning",
                     )
                     await asyncio.sleep(2**i)  # Exponential backoff
-
+        
         self.output_path = change_file_path_if_exist(self.output_dir / self.filename)
         self.filename = self.output_path.name
 

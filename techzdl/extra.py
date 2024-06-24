@@ -1,6 +1,7 @@
 import string
 import random
-from pathlib import Path
+import re
+from pathlib import Path,PurePath
 import asyncio
 import re
 import urllib.parse
@@ -82,6 +83,11 @@ class AdjustableSemaphore:
             self._value += new_limit - self._value
             self._condition.notify_all()
 
+def sanitize_filename(filename):
+    """
+    Replace invalid characters in filenames with an underscore.
+    """
+    return re.sub(r'[<>:"/\\|?*]', '_', filename)
 
 def parse_content_disposition(content_disposition: str) -> Optional[str]:
     """
@@ -93,6 +99,7 @@ def parse_content_disposition(content_disposition: str) -> Optional[str]:
     Returns:
         Optional[str]: The extracted filename, or None if not found.
     """
+    print(content_disposition)
     parts = content_disposition.split(";")
     filename = None
     for part in parts:
@@ -122,7 +129,10 @@ def get_filename(headers: Dict[str, str], url: str, id: str) -> str:
     Returns:
         str: The determined filename.
     """
+
+    url = str(url)
     filename = None
+
     if headers.get("Content-Disposition"):
         filename = parse_content_disposition(headers["Content-Disposition"])
 
@@ -136,4 +146,5 @@ def get_filename(headers: Dict[str, str], url: str, id: str) -> str:
         else:
             filename = id
 
-    return filename.strip()
+    filename= filename.strip().replace("/", "_")
+    return PurePath(sanitize_filename(filename))
