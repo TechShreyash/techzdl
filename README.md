@@ -26,6 +26,8 @@ Here's a basic example of how to use TechZDL:
 
 ### Basic Usage
 
+> Code from [test.py](https://github.com/TechShreyash/techzdl/blob/main/test.py) file
+
 ```python
 import asyncio
 from techzdl.api import TechZDL
@@ -39,6 +41,8 @@ async def main():
 
 asyncio.run(main())
 ```
+
+https://github.com/TechShreyash/techzdl/assets/82265247/33267e71-2b41-4dd1-b306-c87a197a3b57
 
 ## Configuration Parameters
 
