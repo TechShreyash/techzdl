@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="techzdl",
-    version="1.1",
+    version="1.1.1",
     author="TechShreyash",
     author_email="techshreyash123@gmail.com",
     description="A simple yet powerfull file downloader package for python",
@@ -18,4 +18,5 @@ setup(
     ],
     python_requires=">=3.8",
     install_requires=["aiohttp", "aiofiles", "tqdm", "curl_cffi"],
+    license="MIT",
 )

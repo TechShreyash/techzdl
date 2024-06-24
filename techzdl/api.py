@@ -63,7 +63,7 @@ class TechZDL:
 
             async def main():
                 techzdl = TechZDL()
-                downloader = techzdl.get_downloader("https://speed.hetzner.de/100MB.bin")
+                downloader = techzdl.get_downloader("https://link.testfile.org/aXCg7h")
                 await downloader.start()
 
             asyncio.run(main())
