@@ -45,7 +45,7 @@ class FileDownloader:
             custom_headers (Optional[dict], optional): Custom headers to send with the request. Defaults to None.
             output_dir (Union[str, Path], optional): Directory where the file will be saved. Defaults to "downloads".
             filename (Optional[str], optional): Name to save the file as (including extension). By default, this will be determined automatically.
-            workers (Optional[int], optional): Number of fixed concurrent download workers. By default, this will be dynamically changed based on the download speed.
+            workers (Optional[int], optional): Number of fixed concurrent download workers. By default, this will be dynamically changed based on the download speed.  Setting this will disable dynamic worker adjustment.
             initial_dynamic_workers (int, optional): Initial number of dynamic workers. Defaults to 2.
             dynamic_workers_update_interval (int, optional): Interval in seconds to update dynamic worker count. Defaults to 5.
             debug (bool, optional): Enable debug logs. Defaults to True.
@@ -339,6 +339,63 @@ class FileDownloader:
         await self.task_runner(tasks)
         temp_file_path.rename(self.output_path)
 
+    async def get_file_info(self) -> dict:
+        """
+        Get file information from the server.
+
+        Returns:
+            dict: File information. {"filename": str, "total_size": int}
+        total_size (int): Total size of the file in bytes.
+        """
+        for i in range(self.max_retries):
+            try:
+
+                session = aiohttp.ClientSession(
+                    timeout=aiohttp.ClientTimeout(total=self.timeout)
+                )
+
+                self.log(f"Fetching file info from {self.url}")
+                response = await session.get(url=self.url, headers=self.custom_headers)
+                response.close()
+                total_size = int(response.headers.get("Content-Length", 0))
+                if total_size == 0:
+                    raise Exception("Content-Length header is missing or invalid")
+
+                filename = get_filename(response.headers, response.url, self.id)
+                break
+            except Exception as e:
+                try:
+                    self.log(
+                        f"Failed to get file info using aiohttp: {e}", level="error"
+                    )
+                    await session.close()
+
+                    session = AsyncSession(timeout=self.timeout)
+
+                    response = await session.get(
+                        url=self.url, headers=self.custom_headers, stream=True
+                    )
+                    response.close()
+                    total_size = int(response.headers.get("Content-Length", 0))
+                    if total_size == 0:
+                        raise Exception("Content-Length header is missing or invalid")
+
+                    filename = get_filename(response.headers, response.url, self.id)
+                    break
+                except Exception as e:
+                    self.log(f"Error getting file info: {e}", level="error")
+                    if i == self.max_retries - 1:
+                        await session.close()
+                        raise e
+                    self.log(
+                        f"Retrying getting file info ({i + 1}/{self.max_retries})",
+                        level="warning",
+                    )
+                    await asyncio.sleep(2**i)  # Exponential backoff
+
+        await session.close()
+        return {"filename": str(filename), "total_size": total_size}
+
     async def start(self) -> Path:
         """
         Start the download process.
@@ -406,7 +463,7 @@ class FileDownloader:
                         level="warning",
                     )
                     await asyncio.sleep(2**i)  # Exponential backoff
-        
+
         self.output_path = change_file_path_if_exist(self.output_dir / self.filename)
         self.filename = self.output_path.name
 

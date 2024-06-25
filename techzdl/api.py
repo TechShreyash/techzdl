@@ -40,7 +40,7 @@ class TechZDL:
             custom_headers (Optional[dict], optional): Custom headers to send with the request. Defaults to None.
             output_dir (Union[str, Path], optional): Directory where the file will be saved. Defaults to "downloads".
             filename (Optional[str], optional): Name to save the file as (including extension). By default, this will be determined automatically.
-            workers (Optional[int], optional): Number of fixed concurrent download workers. By default, this will be dynamically changed based on the download speed.
+            workers (Optional[int], optional): Number of fixed concurrent download workers. By default, this will be dynamically changed based on the download speed. Setting this will disable dynamic worker adjustment.
             initial_dynamic_workers (int, optional): Initial number of dynamic workers. Defaults to 2.
             dynamic_workers_update_interval (int, optional): Interval in seconds to update dynamic worker count. Defaults to 5.
             debug (bool, optional): Enable debug logs. Defaults to True.
