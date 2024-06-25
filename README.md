@@ -112,6 +112,9 @@ async def main():
 asyncio.run(main())
 ```
 
+#### Output
+![image](https://github.com/TechShreyash/techzdl/assets/82265247/01b5e894-eb1c-48be-8ad8-74c8cb4b6349)
+
 ### Setting Custom File And Folder Name
 
 Code from [demos/setting_custom_file_and_folder_name.py](demos/setting_custom_file_and_folder_name.py) file
@@ -137,6 +140,10 @@ async def main():
 
 asyncio.run(main())
 ```
+
+#### Output
+![image](https://github.com/TechShreyash/techzdl/assets/82265247/4c1c94d2-7d5a-4031-902b-555e4c80bf32)
+
 
 ### Custom Headers
 
@@ -166,6 +173,9 @@ async def main():
 asyncio.run(main())
 ```
 
+#### Output
+![image](https://github.com/TechShreyash/techzdl/assets/82265247/1de8ed93-2b4d-4f8e-a341-0a236c88dfe8)
+
 ### Fixed No. Of Workers
 
 Code from [demos/fixed_no_of_workers.py](demos/fixed_no_of_workers.py) file
@@ -192,6 +202,10 @@ async def main():
 
 asyncio.run(main())
 ```
+
+#### Output
+![image](https://github.com/TechShreyash/techzdl/assets/82265247/87dcfee5-f4b2-4d42-af80-120cb06fdc2f)
+
 
 ### Custom Progress Callback
 
@@ -224,6 +238,10 @@ async def main():
 asyncio.run(main())
 ```
 
+#### Output
+![image](https://github.com/TechShreyash/techzdl/assets/82265247/3098eb9b-0e04-45a5-8bd2-5e3ad46e53a6)
+
+
 ### Timeouts And Max Retries
 
 Code from [demos/timeout_and_max_retries.py](demos/timeout_and_max_retries.py) file
@@ -252,6 +270,10 @@ async def main():
 asyncio.run(main())
 ```
 
+#### Output
+![image](https://github.com/TechShreyash/techzdl/assets/82265247/87dcfee5-f4b2-4d42-af80-120cb06fdc2f)
+
+
 ### Single Threaded Mode
 
 Code from [demos/single_threaded_mode.py](demos/single_threaded_mode.py) file
@@ -279,6 +301,10 @@ async def main():
 asyncio.run(main())
 ```
 
+#### Output
+![image](https://github.com/TechShreyash/techzdl/assets/82265247/beb0574c-08e0-4903-92ce-d9202166880f)
+
+
 ### Disable Debug Logs And Default Progress Bar
 
 Code from [demos/disable_debug_logs_and_default_progress.py](demos/disable_debug_logs_and_default_progress.py) file
@@ -305,6 +331,9 @@ async def main():
 
 asyncio.run(main())
 ```
+
+#### Output
+![image](https://github.com/TechShreyash/techzdl/assets/82265247/81005cb5-5c46-4fe4-a14a-b8d2d3a52118)
 
 ## License
 
