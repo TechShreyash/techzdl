@@ -1,10 +1,8 @@
 # TechZDL
 
-A simple yet powerful file downloader package for Python.
+TechZDL is a powerful file downloader package for Python that supports multi-threaded downloads, dynamic worker adjustments based on network speed, custom headers, and more.
 
-## Description
-
-TechZDL is a highly efficient and easy-to-use file downloader package for Python. It provides features for downloading files with multiple threads, dynamic worker adjustments based on network speed, and more.
+<img src="https://stats.techzbots.co/api/views_badge?page=https%3A%2F%2Fgithub.com%2FTechShreyash%2Ftechzdl&color1=20c488&color2=eb0205&label=Total%20Repo%20Views&counter_type=1" alt="Total Repo Views">
 
 ## Installation
 
@@ -113,6 +111,7 @@ asyncio.run(main())
 ```
 
 #### Output
+
 ![image](https://github.com/TechShreyash/techzdl/assets/82265247/01b5e894-eb1c-48be-8ad8-74c8cb4b6349)
 
 ### Setting Custom File And Folder Name
@@ -142,8 +141,8 @@ asyncio.run(main())
 ```
 
 #### Output
-![image](https://github.com/TechShreyash/techzdl/assets/82265247/4c1c94d2-7d5a-4031-902b-555e4c80bf32)
 
+![image](https://github.com/TechShreyash/techzdl/assets/82265247/4c1c94d2-7d5a-4031-902b-555e4c80bf32)
 
 ### Custom Headers
 
@@ -174,6 +173,7 @@ asyncio.run(main())
 ```
 
 #### Output
+
 ![image](https://github.com/TechShreyash/techzdl/assets/82265247/1de8ed93-2b4d-4f8e-a341-0a236c88dfe8)
 
 ### Fixed No. Of Workers
@@ -204,8 +204,8 @@ asyncio.run(main())
 ```
 
 #### Output
-![image](https://github.com/TechShreyash/techzdl/assets/82265247/87dcfee5-f4b2-4d42-af80-120cb06fdc2f)
 
+![image](https://github.com/TechShreyash/techzdl/assets/82265247/87dcfee5-f4b2-4d42-af80-120cb06fdc2f)
 
 ### Custom Progress Callback
 
@@ -239,8 +239,8 @@ asyncio.run(main())
 ```
 
 #### Output
-![image](https://github.com/TechShreyash/techzdl/assets/82265247/3098eb9b-0e04-45a5-8bd2-5e3ad46e53a6)
 
+![image](https://github.com/TechShreyash/techzdl/assets/82265247/3098eb9b-0e04-45a5-8bd2-5e3ad46e53a6)
 
 ### Timeouts And Max Retries
 
@@ -271,8 +271,8 @@ asyncio.run(main())
 ```
 
 #### Output
-![image](https://github.com/TechShreyash/techzdl/assets/82265247/87dcfee5-f4b2-4d42-af80-120cb06fdc2f)
 
+![image](https://github.com/TechShreyash/techzdl/assets/82265247/87dcfee5-f4b2-4d42-af80-120cb06fdc2f)
 
 ### Single Threaded Mode
 
@@ -302,8 +302,8 @@ asyncio.run(main())
 ```
 
 #### Output
-![image](https://github.com/TechShreyash/techzdl/assets/82265247/beb0574c-08e0-4903-92ce-d9202166880f)
 
+![image](https://github.com/TechShreyash/techzdl/assets/82265247/beb0574c-08e0-4903-92ce-d9202166880f)
 
 ### Disable Debug Logs And Default Progress Bar
 
@@ -333,8 +333,13 @@ asyncio.run(main())
 ```
 
 #### Output
+
 ![image](https://github.com/TechShreyash/techzdl/assets/82265247/81005cb5-5c46-4fe4-a14a-b8d2d3a52118)
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For inquiries or support, join our [Telegram Support Group](https://telegram.me/TechZBots_Support) or email [techshreyash123@gmail.com](mailto:techshreyash123@gmail.com).
