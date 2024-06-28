@@ -1,13 +1,11 @@
 # This script demonstrates how to use the TechZDL package to fetch file information asynchronously.
 
 import asyncio
-from techzdl.api import TechZDL
+from techzdl import TechZDL
 
 
 async def main():
-    techzdl = TechZDL()
-
-    downloader = techzdl.get_downloader(url="https://link.testfile.org/bNYZFw")
+    downloader = TechZDL(url="https://link.testfile.org/bNYZFw")
 
     # Retrieve file information asynchronously
     file_info = await downloader.get_file_info()

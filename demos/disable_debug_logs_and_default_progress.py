@@ -3,13 +3,11 @@
 # Adding custom progress_callback will still work
 
 import asyncio
-from techzdl.api import TechZDL
+from techzdl import TechZDL
 
 
 async def main():
-    techzdl = TechZDL()
-
-    downloader = techzdl.get_downloader(
+    downloader = TechZDL(
         url="https://link.testfile.org/bNYZFw",
         debug=False,  # Disable debug logs
         progress=False,  # Disable progress display

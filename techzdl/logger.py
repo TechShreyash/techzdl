@@ -5,7 +5,7 @@ class Logger:
     def __init__(self, name, level=logging.DEBUG):
         self.logger = logging.getLogger(name)
         self.logger.setLevel(level)
-        self.formatter = logging.Formatter("%(name)s - %(message)s")
+        self.formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
 
         # StreamHandler for console output
         self.stream_handler = logging.StreamHandler()

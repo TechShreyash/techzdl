@@ -5,7 +5,7 @@
 
 
 import asyncio
-from techzdl.api import TechZDL
+from techzdl import TechZDL
 
 
 def progress_callback(description, done, total, arg1, arg2):
@@ -13,9 +13,7 @@ def progress_callback(description, done, total, arg1, arg2):
 
 
 async def main():
-    techzdl = TechZDL()
-
-    downloader = techzdl.get_downloader(
+    downloader = TechZDL(
         url="https://link.testfile.org/bNYZFw",  # URL of the file to download
         progress_callback=progress_callback,  # Custom progress callback function
         progress_args=(

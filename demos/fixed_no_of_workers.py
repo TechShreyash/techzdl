@@ -5,12 +5,11 @@
 # For optimal performance, you can omit this parameter and allow the library to automatically determine the number of workers.
 
 import asyncio
-from techzdl.api import TechZDL
+from techzdl import TechZDL
 
 
 async def main():
-    techzdl = TechZDL()
-    downloader = techzdl.get_downloader(
+    downloader = TechZDL(
         url="https://link.testfile.org/bNYZFw",
         workers=4,  # Fixed number of workers for the downloader
     )

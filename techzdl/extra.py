@@ -1,7 +1,7 @@
 import string
 import random
 import re
-from pathlib import Path,PurePath
+from pathlib import Path, PurePath
 import asyncio
 import re
 import urllib.parse
@@ -83,11 +83,13 @@ class AdjustableSemaphore:
             self._value += new_limit - self._value
             self._condition.notify_all()
 
+
 def sanitize_filename(filename):
     """
     Replace invalid characters in filenames with an underscore.
     """
-    return re.sub(r'[<>:"/\\|?*]', '_', filename)
+    return re.sub(r'[<>:"/\\|?*]', "_", filename)
+
 
 def parse_content_disposition(content_disposition: str) -> Optional[str]:
     """
@@ -146,5 +148,5 @@ def get_filename(headers: Dict[str, str], url: str, id: str) -> str:
         else:
             filename = id
 
-    filename= filename.strip().replace("/", "_")
+    filename = filename.strip().replace("/", "_")
     return PurePath(sanitize_filename(filename))

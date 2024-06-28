@@ -8,9 +8,7 @@ from techzdl.api import TechZDL
 
 
 async def main():
-    techzdl = TechZDL()
-
-    downloader = techzdl.get_downloader(
+    downloader = TechZDL(
         url="https://link.testfile.org/bNYZFw",  # URL of the file to download
         timeout=30,  # Timeout in seconds for each request (default: 60 seconds)
         max_retries=5,  # Maximum number of retries for each chunk/file download (default: 3)

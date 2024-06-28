@@ -4,13 +4,11 @@
 # The single-threaded mode is automatically enabled when the 'workers' parameter is set to 1 or when the server does not support range requests.
 
 import asyncio
-from techzdl.api import TechZDL
+from techzdl import TechZDL
 
 
 async def main():
-    techzdl = TechZDL()
-
-    downloader = techzdl.get_downloader(
+    downloader = TechZDL(
         url="https://link.testfile.org/bNYZFw",  # URL of the file to download
         single_threaded=True,  # Enable single-threaded mode
     )
