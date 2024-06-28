@@ -290,23 +290,30 @@ class TechZDL:
         Args:
             description (str): Description for the progress display.
         """
+        previous_size = 0
+
         if self.progress_callback:
             while self.size_done < self.total_size:
-                if self.is_callback_async:
-                    await self.progress_callback(
-                        description,
-                        self.size_done,
-                        self.total_size,
-                        *self.progress_args,
-                    )
-                else:
-                    self.progress_callback(
-                        description,
-                        self.size_done,
-                        self.total_size,
-                        *self.progress_args,
-                    )
+                if self.size_done != previous_size:
+                    if self.is_callback_async:
+                        await self.progress_callback(
+                            description,
+                            self.size_done,
+                            self.total_size,
+                            *self.progress_args,
+                        )
+                    else:
+                        self.progress_callback(
+                            description,
+                            self.size_done,
+                            self.total_size,
+                            *self.progress_args,
+                        )
+
+                    previous_size = self.size_done
+
                 await asyncio.sleep(self.progress_interval)
+
             if self.is_callback_async:
                 await self.progress_callback(
                     description, self.total_size, self.total_size, *self.progress_args
@@ -325,10 +332,11 @@ class TechZDL:
                     desc=description,
                     bar_format="{desc}: {percentage:3.0f}% |{bar}| {n_fmt}B/{total_fmt}B [{elapsed}<{remaining}, {rate_fmt}{postfix}]",
                 ) as pbar:
-                    previous_size = 0
                     while self.size_done < self.total_size:
-                        pbar.update(self.size_done - previous_size)
-                        previous_size = self.size_done
+                        if self.size_done != previous_size:
+                            pbar.update(self.size_done - previous_size)
+                            previous_size = self.size_done
+
                         await asyncio.sleep(self.progress_interval)
                     pbar.update(self.total_size - previous_size)
 
