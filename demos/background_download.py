@@ -21,7 +21,12 @@ async def main():
         await asyncio.sleep(1)
 
     # After the download is finished
-    print("Downloading Finished")
+
+    if downloader.download_success:
+        print("Download Successful")
+    else:
+        print("Download Failed")
+        raise downloader.download_error
 
 
 asyncio.run(main())
