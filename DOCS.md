@@ -1,4 +1,4 @@
-# TechZDL v1.2.2 Documentation
+# TechZDL v1.2.3 Documentation
 
 ## Installation
 
@@ -70,8 +70,22 @@ Here is a list of arguments you can pass to the `TechZDL` class to modify your d
 
 ### Attributes
 
-- `id` `(str)`: ID of the TechZDL downloader object, uniquely generated at the time of object creation.
-- `is_running` `(bool)`: True if the download process is running, else False.
+- **`id`** `(str)`: A unique identifier for the TechZDL downloader object, generated at the time of object creation.
+- **`is_running`** `(bool)`: Indicates if the download process is currently running. `True` if the process is active, otherwise `False`.
+- **`filename`** `(str)`: The name of the downloaded file. Can be accessed after downloading starts.
+- **`output_path`** `(Path)`: The file path where the downloaded file is stored. Can be accessed after downloading starts.
+
+> **Note:** `Path` refers to the `Path` object from the `pathlib` library.
+```python
+from pathlib import Path
+```
+
+- **`download_success`** `(bool)`: `True` if the file was downloaded successfully, otherwise `False`. Can be accessed after downloading completes or fails.
+- **`download_error`** `(Exception or None)`: Contains the exception if an error occurred during the download process, otherwise `None`. Can be accessed after downloading completes or fails.
+
+> **Note:** The attributes `output_path`, `download_success`, and `download_error` are particularly useful when using the background download mode, as errors raised and the file path cannot be directly accessed.
+
+### Example Usage
 
 ```python
 import asyncio
@@ -85,7 +99,23 @@ async def main():
 asyncio.run(main())
 ```
 
-> Note: You can access the above attributes as modified attributes of the class object, but modifying them directly is not recommended and may cause issues with the downloader object.
+> **Note:** While you can access the above attributes, modifying them directly is not recommended as it may cause issues with the downloader object.
+
+### Example Usage
+
+```python
+import asyncio
+from techzdl import TechZDL
+
+async def main():
+    downloader = TechZDL(url="https://link.testfile.org/bNYZFw")
+    print(downloader.id)
+    print(downloader.is_running)
+
+asyncio.run(main())
+```
+
+> **Note:** While you can access the above attributes, modifying them directly is not recommended as it may cause issues with the downloader object.
 
 ## Methods
 
@@ -101,11 +131,6 @@ Starts the download process.
 
 - `filepath` `(Path)`: Path to the downloaded file.
 
-> Note: `Path` here refers to the `Path` object from the `pathlib` library.
-
-```python
-from pathlib import Path
-```
 
 ### TechZDL.stop()
 
@@ -121,9 +146,6 @@ Fetches file information from the server.
 
   - `filename` `(str)`: Name as returned by the server or determined by the TechZDL package using response headers and download URL.
   - `total_size` `(int)`: Total size of the file in bytes.
-
-
-
 
 ## Support
 

@@ -1,5 +1,5 @@
 # Name: techzdl
-# Version: 1.2.2
+# Version: 1.2.3
 # Summary: A simple yet powerfull file downloader package for python
 # Home-page: https://github.com/TechShreyash/techzdl
 # Author: TechShreyash
@@ -109,6 +109,10 @@ class TechZDL:
         self.is_running = False
         self.downloader_tasks = []
         self.temp_file_path = None
+        self.download_success = False
+        self.download_error = None
+        self.background_download = False
+        self.is_downloader_used = False
 
         self.logger.info(f"Created TechZ FileDownloader with ID: {self.id} URL: {url}")
 
@@ -133,12 +137,20 @@ class TechZDL:
         if self.is_running:
             raise Exception("Download process is already started")
 
+        if self.is_downloader_used:
+            raise Exception(
+                "Download process is already created using this object. Please create a new object to start a new download process."
+            )
+
         main_task = asyncio.create_task(self._download_manager())
         self.downloader_tasks.append(main_task)
         self.is_running = True
+        self.is_downloader_used = True
 
         if not in_background:
             return await main_task
+        else:
+            self.background_download = True
 
     async def stop(self) -> None:
         """
@@ -646,13 +658,16 @@ class TechZDL:
             self.is_running = False
             await self.session.close()
 
+            self.download_success = True
             return self.output_path
 
         except asyncio.CancelledError:
+            self.download_error = asyncio.CancelledError
             raise asyncio.CancelledError
 
         except Exception as e:
             self._log(f"Error in download process: {e}", level="error")
             await self._cleanup()
             self.is_running = False
+            self.download_error = e
             raise e
