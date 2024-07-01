@@ -148,5 +148,5 @@ def get_filename(headers: Dict[str, str], url: str, id: str) -> str:
         else:
             filename = id
 
-    filename = filename.strip().replace("/", "_")
+    filename = unquote_plus(filename.strip().replace("/", "_"))
     return PurePath(sanitize_filename(filename))
