@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="techzdl",
-    version="1.2.4",
+    version="1.2.5",
     author="TechShreyash",
     author_email="techshreyash123@gmail.com",
     description="A simple yet powerfull file downloader package for python",

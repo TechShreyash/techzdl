@@ -1,4 +1,4 @@
-# TechZDL v1.2.4 Documentation
+# TechZDL v1.2.5 Documentation
 
 ## Installation
 
@@ -66,7 +66,6 @@ Here is a list of arguments you can pass to the `TechZDL` class to modify your d
 - `chunk_size` `(int)`: Size of each download chunk in bytes. Defaults to 5 MB.
 - `single_threaded` `(bool)`: Force single-threaded download. Defaults to False.
 - `max_retries` `(int)`: Maximum retries for each chunk/file download. Defaults to 3.
-- `timeout` `(int)`: Timeout for each request in seconds. Defaults to 60.
 
 ### Attributes
 

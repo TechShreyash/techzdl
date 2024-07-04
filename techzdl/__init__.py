@@ -1,5 +1,5 @@
 # Name: techzdl
-# Version: 1.2.4
+# Version: 1.2.5
 # Summary: A simple yet powerfull file downloader package for python
 # Home-page: https://github.com/TechShreyash/techzdl
 # Author: TechShreyash
@@ -43,7 +43,6 @@ class TechZDL:
         chunk_size: int = 5 * 1024 * 1024,
         single_threaded: bool = False,
         max_retries: int = 3,
-        timeout: int = 60,
     ) -> None:
         """
         Initialize the TechZDL object.
@@ -64,7 +63,6 @@ class TechZDL:
             - `chunk_size` `(int, optional)`: Size of each download chunk in bytes. Defaults to 5 MB.
             - `single_threaded` `(bool, optional)`: Force single-threaded download. Defaults to False.
             - `max_retries` `(int, optional)`: Maximum retries for each chunk/file download. Defaults to 3.
-            - `timeout` `(int, optional)`: Timeout for each request in seconds. Defaults to 60.
 
         #### Examples:
         ```python
@@ -105,7 +103,6 @@ class TechZDL:
         self.curl_cffi_required = False
         self.max_retries = max_retries
         self.session = None
-        self.timeout = timeout
         self.is_running = False
         self.downloader_tasks = []
         self.temp_file_path = None
@@ -185,9 +182,7 @@ class TechZDL:
         for i in range(self.max_retries):
             try:
 
-                session = aiohttp.ClientSession(
-                    timeout=aiohttp.ClientTimeout(total=self.timeout)
-                )
+                session = aiohttp.ClientSession()
 
                 self._log(f"Fetching file info from {self.url}")
                 response = None
@@ -213,7 +208,7 @@ class TechZDL:
                     )
                     await session.close()
 
-                    session = AsyncSession(timeout=self.timeout)
+                    session = AsyncSession()
 
                     response = None
                     try:
@@ -451,41 +446,49 @@ class TechZDL:
             prev_downloaded = self.size_done
             prev_speed = speed
 
+    async def _single_threaded_download_child(self) -> None:
+        response = None
+        if self.curl_cffi_required:
+            try:
+                response = await self.session.get(
+                    url=self.url, headers=self.custom_headers, stream=True
+                )
+                async with aiofiles.open(self.output_path, "wb") as output_file:
+                    async for chunk in response.aiter_content():
+                        await output_file.write(chunk)
+                        self.size_done += len(chunk)
+            except Exception as e:
+                raise e
+            finally:
+                if response:
+                    response.close()
+        else:
+            try:
+                response = await self.session.get(self.url, headers=self.custom_headers)
+                async with aiofiles.open(self.output_path, "wb") as output_file:
+                    while chunk := await response.content.read(self.chunk_size):
+                        await output_file.write(chunk)
+                        self.size_done += len(chunk)
+            except Exception as e:
+                raise e
+            finally:
+                if response:
+                    response.close()
+
     async def _single_threaded_download(self) -> None:
         """
         Perform a single-threaded download of the file.
         """
         for i in range(self.max_retries):
+            self.size_done = 0  # Reset size_done if retrying
+
             try:
-                response = None
-                if self.curl_cffi_required:
-                    try:
-                        response = await self.session.get(
-                            url=self.url, headers=self.custom_headers, stream=True
-                        )
-                        async with aiofiles.open(self.output_path, "wb") as output_file:
-                            async for chunk in response.aiter_content():
-                                await output_file.write(chunk)
-                                self.size_done += len(chunk)
-                    except Exception as e:
-                        raise e
-                    finally:
-                        if response:
-                            response.close()
-                else:
-                    try:
-                        response = await self.session.get(
-                            self.url, headers=self.custom_headers
-                        )
-                        async with aiofiles.open(self.output_path, "wb") as output_file:
-                            while chunk := await response.content.read(self.chunk_size):
-                                await output_file.write(chunk)
-                                self.size_done += len(chunk)
-                    except Exception as e:
-                        raise e
-                    finally:
-                        if response:
-                            response.close()
+                await self._task_runner(
+                    [
+                        self._single_threaded_download_child(),
+                        self._show_progress("Downloading"),
+                    ]
+                )
                 break
             except Exception as e:
                 self._log(f"Error downloading file: {e}", level="error")
@@ -557,9 +560,7 @@ class TechZDL:
                 try:
                     if self.session:
                         await self.session.close()
-                    self.session = aiohttp.ClientSession(
-                        timeout=aiohttp.ClientTimeout(total=self.timeout)
-                    )
+                    self.session = aiohttp.ClientSession()
 
                     self._log(f"Fetching file info from {self.url}")
                     response = None
@@ -590,7 +591,7 @@ class TechZDL:
                         )
                         await self.session.close()
 
-                        self.session = AsyncSession(timeout=self.timeout)
+                        self.session = AsyncSession()
                         self.curl_cffi_required = True
 
                         response = None
@@ -642,12 +643,7 @@ class TechZDL:
                 self._log("Starting single-threaded download")
                 self._log(f"Downloading {self.filename}")
 
-                await self._task_runner(
-                    [
-                        self._single_threaded_download(),
-                        self._show_progress("Downloading"),
-                    ]
-                )
+                await self._single_threaded_download()
             else:
                 self._log(
                     "Server supports range requests. Starting multi-threaded download"
