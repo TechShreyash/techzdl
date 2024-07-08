@@ -19,7 +19,7 @@ from techzdl.extra import (
     get_filename,
 )
 from techzdl.logger import Logger
-from typing import Callable, Any, Union, Awaitable, Optional
+from typing import Callable, Any, Union, Awaitable, Optional, List
 from curl_cffi.requests import AsyncSession
 
 
@@ -257,12 +257,12 @@ class TechZDL:
         elif self.debug:
             self.logger.info(message)
 
-    async def _task_runner(self, tasks: list[Awaitable]) -> None:
+    async def _task_runner(self, tasks: List[Awaitable]) -> None:
         """
         Run a list of async tasks concurrently, handling exceptions and cancellations.
 
         Args:
-            tasks (list[Awaitable]): List of async tasks to run.
+            tasks (List[Awaitable]): List of async tasks to run.
         """
 
         try:
