@@ -1,4 +1,4 @@
-# TechZDL v1.2.5
+# TechZDL v1.2.6
 
 TechZDL is a powerful file downloader package for Python that supports multi-threaded downloads, dynamic worker adjustments based on network speed, custom headers, and more.
 

@@ -1,4 +1,4 @@
-# TechZDL v1.2.5 Documentation
+# TechZDL v1.2.6 Documentation
 
 ## Installation
 

@@ -1,5 +1,5 @@
 # Name: techzdl
-# Version: 1.2.5
+# Version: 1.2.6
 # Summary: A simple yet powerfull file downloader package for python
 # Home-page: https://github.com/TechShreyash/techzdl
 # Author: TechShreyash
