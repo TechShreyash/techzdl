@@ -1,76 +1,76 @@
-# TechZDL v1.2.6
+# TechZDL
 
-TechZDL is a powerful file downloader package for Python that supports multi-threaded downloads, dynamic worker adjustments based on network speed, custom headers, and more.
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/techzdl?period=total&units=ABBREVIATION&left_color=BLACK&right_color=GREEN&left_text=Total+Downloads)](https://pepy.tech/projects/techzdl)
+[![PyPI version](https://img.shields.io/pypi/v/techzdl?color=blue&label=PyPI%20Version)](https://pypi.org/project/techzdl/)
+[![License](https://img.shields.io/github/license/TechShreyash/techzdl?color=red)](LICENSE)
+![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 
-<img src="https://stats.techzbots.co/api/views_badge?page=https%3A%2F%2Fgithub.com%2FTechShreyash%2Ftechzdl&color1=20c488&color2=eb0205&label=Total%20Repo%20Views&counter_type=1" alt="Total Repo Views">
+**TechZDL** is a robust, asynchronous, multi-threaded file downloader package for Python, designed to optimize bandwidth usage and significantly fast-track your downloads.
 
-## Features
+Developed with efficiency in mind, TechZDL features **dynamic worker adjustments**, **non-blocking operations**, and **automatic retries**, making it the perfect tool for handling large-scale downloads with ease. It is capable of increasing download speeds by up to **3x** compared to standard single-threaded downloaders.
 
-- **Multi-threaded downloads**: Efficiently download files using multiple threads.
-- **Dynamic worker adjustments**: Automatically adjusts the number of workers based on network speed.
-- **Custom headers**: Add custom headers to your download requests.
-- **Error handling**: Robust error handling and retry mechanisms.
-- **Asynchronous support**: Fully asynchronous for non-blocking operations.
+---
 
-## Installation
+## 🚀 Key Features
 
-You can install TechZDL using pip:
+- **⚡ Multi-threaded Downloads**: Splits files into chunks and downloads them concurrently using multiple threads for maximum speed.
+- **🔄 Dynamic Worker Adjustment**: Automatically scales the number of download workers based on real-time network speed and system resources.
+- **🛡️ Robust Error Handling**: Built-in automatic retries and intelligent error handling ensure downloads complete successfully even with unstable connections.
+- **🔧 Custom Headers**: Full support for custom HTTP headers to handle authenticated downloads or specific server requirements.
+- **⏳ Asynchronous Core**: Fully non-blocking architecture powered by `asyncio` and `aiohttp`.
+- **📊 Optimized Performance**: Smart bandwidth management reduces overhead and maximizes throughput.
 
-```sh
+## 📦 Installation
+
+Install TechZDL easily via pip:
+
+```bash
 pip install techzdl
 ```
 
-To update TechZDL to the latest version, use:
+To upgrade to the latest version:
 
-```sh
+```bash
 pip install --upgrade techzdl
 ```
 
-**Note**: If it doesn't update to the latest version, use:
+## 🛠️ Quick Start
 
-```sh
-pip install --upgrade --force-reinstall techzdl
-```
-
-## Usage
-
-Here's a basic example of how to use the TechZDL package:
-
-### Basic Usage
+Here is a simple example to get you started:
 
 ```python
 import asyncio
 from techzdl import TechZDL
 
 async def main():
+    # Initialize the downloader
     downloader = TechZDL(url="https://link.testfile.org/bNYZFw")
+    
+    # Start the download
     await downloader.start()
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-https://github.com/TechShreyash/techzdl/assets/82265247/33267e71-2b41-4dd1-b306-c87a197a3b57
+> **Demo Video**:
+> https://github.com/TechShreyash/techzdl/assets/82265247/33267e71-2b41-4dd1-b306-c87a197a3b57
 
-## More Examples / Demos
+## 📖 Documentation
 
-Check the [demos](demos) folder for more examples and detailed demonstrations of file downloading using the TechZDL package. The demos include more information about the various features of TechZDL and how to use them effectively.
+For more advanced usage, configuration options, and API details, please refer to the [DOCS.md](DOCS.md) file.
 
-## Documentation
+You can also find example scripts in the [demos](demos) directory.
 
-Check [DOCS.md](DOCS.md) for detailed documentation of the TechZDL package.
+## 🤝 Support & Community
 
-## License
+- **Telegram Channel**: [Join TechZBots](https://telegram.me/TechZBots) for updates.
+- **Support Group**: [Join Support Group](https://telegram.me/TechZBots_Support) for help and discussions.
+- **Email**: [techshreyash123@gmail.com](mailto:techshreyash123@gmail.com)
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 📄 License
 
-## Support
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-For inquiries or support, join our [Telegram Support Group](https://telegram.me/TechZBots_Support) or email [techshreyash123@gmail.com](mailto:techshreyash123@gmail.com).
-
-## Acknowledgements
-
-Thanks to all contributors and users for their support and feedback.
-
-## Stay Connected
-
-- Join our [Telegram Channel](https://telegram.me/TechZBots)
+---
+*Built with ❤️ by [TechShreyash](https://github.com/TechShreyash)*

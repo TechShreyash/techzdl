@@ -1,47 +1,68 @@
-# TechZDL v1.2.6 Documentation
+# TechZDL Documentation
+
+## Table of Contents
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Class: TechZDL](#class-techzdl)
+    - [Arguments](#arguments)
+    - [Attributes](#attributes)
+- [Methods](#methods)
+    - [start()](#start)
+    - [stop()](#stop)
+    - [get_file_info()](#get_file_info)
+- [Support](#support)
+
+---
 
 ## Installation
 
 You can install TechZDL using pip:
 
-```sh
+```bash
 pip install techzdl
 ```
 
-To update TechZDL to the latest version, use:
+To update to the latest version:
 
-```sh
+```bash
 pip install --upgrade techzdl
 ```
 
-**Note**: If it doesn't update to the latest version, use:
+If you encounter issues updating, you can force a reinstall:
 
-```sh
+```bash
 pip install --upgrade --force-reinstall techzdl
 ```
 
-## Usage
+---
 
-Here's a basic example of how to use the TechZDL package:
-
-### Basic Usage
+## Quick Start
+Here is a basic example of how to use TechZDL:
 
 ```python
 import asyncio
 from techzdl import TechZDL
 
 async def main():
+    # Initialize downloader
     downloader = TechZDL(url="https://link.testfile.org/bNYZFw")
+    
+    # Start download
     await downloader.start()
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-https://github.com/TechShreyash/techzdl/assets/82265247/33267e71-2b41-4dd1-b306-c87a197a3b57
+> **Demo Video**: [Watch on GitHub](https://github.com/TechShreyash/techzdl/assets/82265247/33267e71-2b41-4dd1-b306-c87a197a3b57)
 
-## The TechZDL Class
+For more examples, check the [demos](demos) folder in the repository.
 
-You can import it using:
+---
+
+## Class: TechZDL
+
+You can import the class as follows:
 
 ```python
 from techzdl import TechZDL
@@ -49,107 +70,77 @@ from techzdl import TechZDL
 
 ### Arguments
 
-Here is a list of arguments you can pass to the `TechZDL` class to modify your downloading process:
-
-- `url` `(str)`: URL of the file to download.
-- `custom_headers` `(Optional[dict])`: Custom headers to send with the request. Defaults to None.
-- `output_dir` `(Union[str, Path])`: Directory where the file will be saved. Defaults to "downloads".
-- `filename` `(Optional[str])`: Name to save the file as (including extension). By default, this will be determined automatically.
-- `workers` `(Optional[int])`: Number of fixed concurrent download workers. By default, this will be dynamically adjusted based on the download speed. Setting this will disable dynamic worker adjustment.
-- `initial_dynamic_workers` `(int)`: Initial number of dynamic workers. Defaults to 2.
-- `dynamic_workers_update_interval` `(int)`: Interval in seconds to update dynamic worker count. Defaults to 5.
-- `debug` `(bool)`: Enable debug logs. Defaults to True.
-- `progress` `(bool)`: Enable download progress display. Defaults to True.
-- `progress_callback` `(Optional[Callable[..., Any]])`: Callback function for download progress updates. Can be synchronous. Defaults to None. Setting this disables tqdm progress.
-- `progress_args` `(tuple)`: Additional arguments for `progress_callback`. Defaults to ().
-- `progress_interval` `(int)`: Time interval for progress updates in seconds. Defaults to 1.
-- `chunk_size` `(int)`: Size of each download chunk in bytes. Defaults to 5 MB.
-- `single_threaded` `(bool)`: Force single-threaded download. Defaults to False.
-- `max_retries` `(int)`: Maximum retries for each chunk/file download. Defaults to 3.
+| Argument | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `url` | `str` | **Required** | The direct URL of the file to download. |
+| `custom_headers` | `dict` | `None` | Custom HTTP headers to include in the request. |
+| `output_dir` | `str` \| `Path` | `"downloads"` | Directory where the file will be saved. |
+| `filename` | `str` | `None` | Name of the file. If not set, it's determined automatically. |
+| `workers` | `int` | `None` | Fixed number of download workers. Setting this disables dynamic adjustment. |
+| `initial_dynamic_workers` | `int` | `2` | Initial number of workers if dynamic adjustment is active. |
+| `dynamic_workers_update_interval` | `int` | `5` | Seconds between checking/updating worker count. |
+| `debug` | `bool` | `True` | Enable or disable debug logging. |
+| `progress` | `bool` | `True` | Enable basic progress display (tqdm). |
+| `progress_callback` | `Callable` | `None` | Custom callback for progress updates. Overrides `progress`. |
+| `progress_args` | `tuple` | `()` | Additional arguments to pass to the `progress_callback`. |
+| `progress_interval` | `int` | `1` | Interval (in seconds) for progress updates. |
+| `chunk_size` | `int` | `5MB` | Size of each download chunk in bytes. |
+| `single_threaded` | `bool` | `False` | Force standard single-threaded download. |
+| `max_retries` | `int` | `3` | Maximum retries for file/chunk downloads. |
 
 ### Attributes
 
-- **`id`** `(str)`: A unique identifier for the TechZDL downloader object, generated at the time of object creation.
-- **`is_running`** `(bool)`: Indicates if the download process is currently running. `True` if the process is active, otherwise `False`.
-- **`filename`** `(str)`: The name of the downloaded file. Can be accessed after downloading starts.
-- **`output_path`** `(Path)`: The file path where the downloaded file is stored. Can be accessed after downloading starts.
+| Attribute | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `str` | Unique identifier for the downloader instance. |
+| `is_running` | `bool` | `True` if the download process is currently active. |
+| `filename` | `str` | Final name of the downloaded file. |
+| `output_path` | `Path` | Full path to the downloaded file. |
+| `download_success` | `bool` | `True` if the download completed successfully. |
+| `download_error` | `Exception` | Contains the exception if an error occurred. |
 
-> **Note:** `Path` refers to the `Path` object from the `pathlib` library.
-```python
-from pathlib import Path
-```
-
-- **`download_success`** `(bool)`: `True` if the file was downloaded successfully, otherwise `False`. Can be accessed after downloading completes or fails.
-- **`download_error`** `(Exception or None)`: Contains the exception if an error occurred during the download process, otherwise `None`. Can be accessed after downloading completes or fails.
-
-> **Note:** The attributes `output_path`, `download_success`, and `download_error` are particularly useful when using the background download mode, as errors raised and the file path cannot be directly accessed.
-
-### Example Usage
-
-```python
-import asyncio
-from techzdl import TechZDL
-
-async def main():
-    downloader = TechZDL(url="https://link.testfile.org/bNYZFw")
-    print(downloader.id)
-    print(downloader.is_running)
-
-asyncio.run(main())
-```
-
-> **Note:** While you can access the above attributes, modifying them directly is not recommended as it may cause issues with the downloader object.
-
-### Example Usage
-
-```python
-import asyncio
-from techzdl import TechZDL
-
-async def main():
-    downloader = TechZDL(url="https://link.testfile.org/bNYZFw")
-    print(downloader.id)
-    print(downloader.is_running)
-
-asyncio.run(main())
-```
-
-> **Note:** While you can access the above attributes, modifying them directly is not recommended as it may cause issues with the downloader object.
+---
 
 ## Methods
 
-### TechZDL.start()
+### `start()`
 
 Starts the download process.
 
-#### Args
+```python
+await downloader.start(in_background=False)
+```
 
-- `in_background` `(bool, optional)`: Run the download process in the background. Defaults to False.
+**Arguments:**
+- `in_background` (`bool`): If `True`, runs the download in the background and returns `None` immediately. If `False`, waits for completion.
 
-#### Returns
+**Returns:**
+- `Path`: The path to the downloaded file (only if `in_background=False`).
 
-- `filepath` `(Path)`: Path to the downloaded file.
+### `stop()`
 
+Forcefully stops the current download process.
 
-### TechZDL.stop()
+```python
+await downloader.stop()
+```
 
-Forcefully stops the download process.
+### `get_file_info()`
 
-### TechZDL.get_file_info()
+Fetches metadata about the file without downloading it.
 
-Fetches file information from the server.
+```python
+info = await downloader.get_file_info()
+```
 
-#### Returns
+**Returns:** (`dict`)
+- `filename`: The name of the file.
+- `total_size`: The size of the file in bytes.
 
-- `dict`: File information in the format `{"filename": str, "total_size": int}`.
-
-  - `filename` `(str)`: Name as returned by the server or determined by the TechZDL package using response headers and download URL.
-  - `total_size` `(int)`: Total size of the file in bytes.
+---
 
 ## Support
 
-For inquiries or support, join our [Telegram Support Group](https://telegram.me/TechZBots_Support) or email [techshreyash123@gmail.com](mailto:techshreyash123@gmail.com).
-
-## Stay Connected
-
-- Join our [Telegram Channel](https://telegram.me/TechZBots)
+- **Telegram Support Group**: [Join Here](https://telegram.me/TechZBots_Support)
+- **Email**: [techshreyash123@gmail.com](mailto:techshreyash123@gmail.com)
+- **Telegram Channel**: [TechZBots](https://telegram.me/TechZBots)
